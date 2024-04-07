@@ -1,0 +1,78 @@
+nop:
+  type: "F"
+  flag_bit_11: 0
+  args: []
+
+scf:
+  type: "F"
+  flag_bit_11: 1
+  args: ["Flag", "inv", "cond"] 
+
+ld:
+  type: "I"
+  imm_type: 0
+  args: ["Reg", "Imm", "cond"]
+
+st:
+  type: "I"
+  imm_type: 1
+  args: ["Reg", "Imm", "cond"]
+
+ldi:
+  type: "I"
+  imm_type: 2
+  args: ["Reg", "Imm", "cond"]
+
+goto:
+  type: "J"
+  args: ["Reg", "Reg", "cond"]
+
+slr:
+  type: "R"
+  func: 0
+  args: ["Reg", "Reg", "cond"]
+
+sll:
+  type: "R"
+  func: 1
+  args: ["Reg", "Reg", "cond"]
+
+inc:
+  type: "R"
+  func: 4
+  args: ["Reg", "Reg", "cond"]
+
+dec:
+  type: "R"
+  func: 5
+  args: ["Reg", "Reg", "cond"]
+
+add:
+  type: "R"
+  func: 6
+  args: ["Reg", "Reg", "cond"]
+
+not:
+  type: "R"
+  func: 8
+  args: ["Reg", "Reg", "cond"]
+
+and:
+  type: "R"
+  func: 9
+  args: ["Reg", "Reg", "cond"]
+
+or:
+  type: "R"
+  func: 10
+  args: ["Reg", "Reg", "cond"]
+
+xor:
+  type: "R"
+  func: 11
+  args: ["Reg", "Reg", "cond"]
+
+mov:
+  type: "R"
+  func: 12
+  args: ["Reg", "Reg", "cond"]
