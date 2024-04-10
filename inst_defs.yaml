@@ -1,78 +1,78 @@
-nop:
+- mnemonic: "nop"
   type: "F"
   flag_bit_11: 0
   args: []
 
-scf:
+- mnemonic: "scf"
   type: "F"
   flag_bit_11: 1
   args: ["Flag", "inv", "cond"] 
 
-ld:
+- mnemonic: "ld"
   type: "I"
   imm_type: 0
   args: ["Reg", "Imm", "cond"]
 
-st:
+- mnemonic: "st"
   type: "I"
   imm_type: 1
   args: ["Reg", "Imm", "cond"]
 
-ldi:
+- mnemonic: "ldi"
   type: "I"
   imm_type: 2
   args: ["Reg", "Imm", "cond"]
 
-goto:
+- mnemonic: "goto"
   type: "J"
   args: ["Reg", "Reg", "cond"]
 
-slr:
+- mnemonic: "slr"
   type: "R"
   func: 0
   args: ["Reg", "Reg", "cond"]
 
-sll:
+- mnemonic: "sll"
   type: "R"
   func: 1
   args: ["Reg", "Reg", "cond"]
 
-inc:
+- mnemonic: "inc"
   type: "R"
   func: 4
   args: ["Reg", "Reg", "cond"]
 
-dec:
+- mnemonic: "dec"
   type: "R"
   func: 5
   args: ["Reg", "Reg", "cond"]
 
-add:
+- mnemonic: "add"
   type: "R"
   func: 6
   args: ["Reg", "Reg", "cond"]
 
-not:
+- mnemonic: "not"
   type: "R"
   func: 8
   args: ["Reg", "Reg", "cond"]
 
-and:
+- mnemonic: "and"
   type: "R"
   func: 9
   args: ["Reg", "Reg", "cond"]
 
-or:
+- mnemonic: "or"
   type: "R"
   func: 10
   args: ["Reg", "Reg", "cond"]
 
-xor:
+- mnemonic: "xor"
   type: "R"
   func: 11
   args: ["Reg", "Reg", "cond"]
 
-mov:
+- mnemonic: "mov"
   type: "R"
   func: 12
   args: ["Reg", "Reg", "cond"]

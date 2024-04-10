@@ -1,129 +1,94 @@
 import re
+import tmasm_utils
 
 class InstParser:
     def __init__(self, inst_def,symbol_table):
-        self.inst_def = inst_def
         self.symbol_table = symbol_table
+        self.inst_table = tmasm_utils.make_mnemonic_table(inst_def)
 
-    def convert_args(self, tokens,inst_def):
-        # check argument types and convert them
-        converted_args = []
-        for i, arg in enumerate(tokens[1:]):
-            if inst_def['args'][i] == 'Reg':
-                if not arg.startswith('$') or \
-                not arg[1:].isdigit() or \
-                int(arg[1:]) < 0 or \
-                int(arg[1:]) >= 8:
-                    raise ValueError("Invalid register:" + str(arg))
+    def inst_to_bin(self,tokens):
+        # skip if the line is not instruction
+        if tokens[0]["type"] != "mnemonic":
+            return None
+        else:
+            # resolve symbols first
+            resolved_tokens = self.resolve_symbol(tokens)
+            # check if the instruction is valid and get the definition
+            mnemonic = resolved_tokens[0]["token"]
+            definition = tmasm_utils.search_definition(resolved_tokens,self.inst_table)
+            if definition is None:
+                raise ValueError("Invalid instruction:" + str(resolved_tokens))
+            # generate binary instruction
+            print(resolved_tokens)
+            bin_inst = self.generate_bin(resolved_tokens,definition)
+            return bin_inst
+
+    # resolve symbols in the instruction
+    def resolve_symbol(self,tokens):
+        ret_tokens = []
+        for token in tokens:
+            if token["type"] == "symbol":
+                symbol = token["token"]
+                if symbol not in self.symbol_table:
+                    raise ValueError("Unknown symbol:" + symbol)
                 else:
-                    converted_args.append(int(arg[1:]))
-            elif inst_def['args'][i] == 'Imm':
-                val = self.get_symbol(arg)
-                if val is not None:
-                    converted_args.append(val)
-                elif not is_hex_byte(arg) and not is_decimal_byte(arg):
-                    raise ValueError("Invalid immediate value:" + str(arg))
-                else:
-                    converted_args.append(int(arg, 0))
-            elif inst_def['args'][i] == 'Flag':
-                arg = arg.lower()
-                if re.match(r'^[csvz]{1,4}$', arg) is None:
-                    raise ValueError("Invalid flag:" + str(arg))
-                else:
-                    converted_args.append(str_to_flag(arg))
-            elif inst_def['args'][i] == 'cond':
-                if arg != "c":
-                    raise ValueError("Invalid condition:" + str(arg))
-                else:
-                    converted_args.append("c")
-            elif inst_def['args'][i] == 'inv':
-                if arg != "i":
-                    raise ValueError("Invalid inversion flag:" + str(arg))
-                else:
-                    converted_args.append("i")
+                    raise ValueError("Symbol without .lo/.hi suffix is not allowed in operand:" + symbol)
+            elif token["type"] == "symbol_hi":
+                symbol = token["token"]
+                if symbol not in self.symbol_table:
+                    raise ValueError("Unknown symbol:" + symbol)
+                addr = (self.symbol_table[symbol]["symbol_addr"] >> 8) & 0xff
+                new_token = {"type":"imm","token":addr}
+                ret_tokens.append(new_token)
+            elif token["type"] == "symbol_lo":
+                symbol = token["token"]
+                if symbol not in self.symbol_table:
+                    raise ValueError("Unknown symbol:" + symbol)
+                addr = self.symbol_table[symbol]["symbol_addr"] & 0xff
+                new_token = {"type":"imm","token":addr}
+                ret_tokens.append(new_token)
             else:
-                raise ValueError("Unknown argument type:" + str(arg))
-        return converted_args
+                ret_tokens.append(token)
+        return ret_tokens
 
-    def generate_bin(self,converted_args,inst_def):
+    def generate_bin(self,tokens,inst_def):
         # generate binary instruction
         bin_inst = 0
         inst_type = inst_def['type']
+        args = tmasm_utils.get_arg_tokens(tokens)
         if inst_type == 'R':
             bin_inst |= 0x8000
-            bin_inst |= converted_args[0] << 8
-            bin_inst |= converted_args[1] << 5
+            bin_inst |= args[0]["token"] << 8
+            bin_inst |= args[1]["token"] << 5
             bin_inst |= inst_def["func"]
-            if "c" in converted_args:
-                bin_inst |= 1 << 13
+            for arg in args[2:]:
+                if arg["type"] == "cond":
+                    bin_inst |= 1 << 13
         elif inst_type == 'I':
             bin_inst |= 0xc000
             bin_inst |= inst_def["imm_type"] << 11
-            bin_inst |= converted_args[0] << 8
-            bin_inst |= converted_args[1] & 0xff
-            if "c" in converted_args:
-                bin_inst |= 1 << 13             
+            bin_inst |= args[0]["token"] << 8
+            bin_inst |= args[1]["token"] & 0xff
+            for arg in args[2:]:
+                if arg["type"] == "cond":
+                    bin_inst |= 1 << 13        
         elif inst_type == 'J':
             bin_inst |= 0x4000
-            bin_inst |= converted_args[0] << 8
-            bin_inst |= converted_args[1] << 5
-            if "c" in converted_args:
-                bin_inst |= 1 << 13
+            bin_inst |= args[0]["token"] << 8
+            bin_inst |= args[1]["token"] << 5
+            for arg in args[2:]:
+                if arg["type"] == "cond":
+                    bin_inst |= 1 << 13   
         elif inst_type == 'F':
-            if len(converted_args) == 0:
+            if len(args) == 0:
                 bin_inst = 0
             else:
-                bin_inst |= converted_args[0]
+                bin_inst |= args[0]["token"]
                 bin_inst |= 1 << 11
-                if "c" in converted_args:
-                    bin_inst |= 1 << 13
-                if "i" in converted_args:
-                    bin_inst |= 1 << 8
+                for arg in args[1:]:
+                    if arg["type"] == "cond":
+                        bin_inst |= 1 << 13
+                    if arg["type"] == "inv":
+                        bin_inst |= 1 << 8   
         return bin_inst
 
-    def inst_to_bin(self,inst):
-        #toknize inst string
-        inst = inst.replace(',', ' ')
-        tokens = inst.split()
-        mnemonic = tokens[0].lower()
-        if mnemonic in self.inst_def:
-            inst_def = self.inst_def[mnemonic]
-            converted_args = self.convert_args(tokens, inst_def)
-            bin_inst = self.generate_bin(converted_args, inst_def) 
-        else:
-            raise ValueError("Unknown instruction:" + str(tokens[0]))
-
-        return bin_inst
-
-    def get_symbol(self, arg):
-        idx = arg.find('.')
-        symbol = arg[:idx]
-        byte_pos = arg[idx+1:].lower()
-        if symbol not in self.symbol_table:
-            return None
-        if byte_pos not in ["lo", "hi"]:
-            raise ValueError("Invalid byte position:" + byte_pos)
-        symbol_addr = self.symbol_table[symbol]["symbol_addr"]
-        if byte_pos == "lo":
-            return symbol_addr & 0xff
-        else:
-            return (symbol_addr >> 8) & 0xff
-
-# check if a string is a hexadecimal number
-def is_hex_byte(c):
-    return re.match(r'^0x[0-9a-fA-F]{1,2}$', c) is not None
-
-def is_decimal_byte(c):
-    return c >= -128 and c <= 255
-
-def str_to_flag(s):
-    flag_value = 0
-    if "c" in s:
-        flag_value |= 8
-    if "s" in s:
-        flag_value |= 4
-    if "v" in s:
-        flag_value |= 2
-    if "z" in s:
-        flag_value |= 1
-    return flag_value
