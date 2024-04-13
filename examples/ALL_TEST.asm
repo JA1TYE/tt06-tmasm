@@ -1,0 +1,53 @@
+//Peripheral function test example
+//GPIO[7:4] = LED(0:Light off, 1:Light on)
+//GPIO[0] = Button(0:Pressed, 1:Released)
+VAR GPIO_DIR    0xf000
+VAR GPIO_OUT    0xf001
+VAR GPIO_IN     0xf002
+VAR SPI_DIV     0xf004
+VAR SPI_CS_CTRL 0xf005
+VAR SPI_STATUS  0xf006
+VAR SPI_DATA    0xf007
+VAR MEM_REGION 0x0001
+INIT_GPIO:
+    LDI $1,0xf0
+    LDI $2,0xff
+    ST  $1,GPIO_DIR
+    ST  $2,GPIO_OUT
+WAIT_BUTTON:
+    LDI $1,0x01
+    LD  $2,GPIO_IN
+    AND $2,$1
+    BZC WAIT_BUTTON
+INIT_SPI:
+    LDI $1,0x0f
+    ST  $1,SPI_DIV
+    LDI $1,0x01
+    ST  $1,SPI_CS_CTRL
+LED_BLINK_PREPARE:
+    LDI $2,0xaa
+    LDI $3,0x00
+    LDI $4,0x00
+WAIT_LOOP:
+    INC $3,$3
+    BCC WAIT_LOOP
+    INC $4,$4
+    BCC WAIT_LOOP
+    LDI $1,0x00
+    ST  $1,SPI_CS_CTRL
+    ST  $2,SPI_DATA
+WAIT_SPI_TX_DONE:
+    LD  $0,SPI_STATUS
+    LDI $1,0x01
+    AND $0,$1
+    BZC WAIT_SPI_TX_DONE
+    LDI $1,0x01
+    ST  $1,SPI_CS_CTRL
+    NOT $2,$2
+    ST  $2,MEM_REGION
+    NOT $2,$2
+    LD  $2,MEM_REGION
+    ST  $2,GPIO_OUT
+    GOTO WAIT_LOOP
+END_LOOP:
+    GOTO END_LOOP

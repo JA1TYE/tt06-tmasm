@@ -1,7 +1,7 @@
 - mnemonic: "bcs"
   args: ["Symbol"]
   replace:
-    - "scf c"
+    - "scf c,inv"
     - "ldi $6,%0.hi"
     - "ldi $7,%0.lo"
     - "goto $6,$7,cond"
@@ -9,7 +9,23 @@
 - mnemonic: "bcc"
   args: ["Symbol"]
   replace:
-    - "scf c,inv"
+    - "scf c"
+    - "ldi $6,%0.hi"
+    - "ldi $7,%0.lo"
+    - "goto $6,$7,cond"
+
+- mnemonic: "bzs"
+  args: ["Symbol"]
+  replace:
+    - "scf z,inv"
+    - "ldi $6,%0.hi"
+    - "ldi $7,%0.lo"
+    - "goto $6,$7,cond"
+
+- mnemonic: "bzc"
+  args: ["Symbol"]
+  replace:
+    - "scf z"
     - "ldi $6,%0.hi"
     - "ldi $7,%0.lo"
     - "goto $6,$7,cond"
