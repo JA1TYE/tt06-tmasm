@@ -21,6 +21,13 @@
     - "ldi $7,%1.lo"
     - "st  $7,%1.hi"
 
+- mnemonic: "ld"
+  args: ["Reg", "Symbol"]
+  replace:
+    - "ldi $7,%1.lo"
+    - "ld  $7,%1.hi"
+    - "mov $0,%0"
+
 - mnemonic: "goto"
   args: ["Symbol"]
   replace:
